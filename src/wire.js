@@ -38,6 +38,7 @@ function SpiceWireReader(sc, callback)
 
     this.sc.ws.wire_reader = this;
     this.sc.ws.binaryType = "arraybuffer";
+    // 新消息监听
     this.sc.ws.addEventListener('message', wire_blob_catcher);
 }
 
@@ -50,8 +51,9 @@ SpiceWireReader.prototype =
     inbound: function (mb)
     {
         var at;
-
+        DEBUG > 0 && console.log(`this.needed: ${this.needed}`);
         /* Just buffer if we don't need anything yet */
+        // 无数据需求，直接存储
         if (this.needed == 0)
         {
             this.buffers.push(mb);
@@ -60,8 +62,10 @@ SpiceWireReader.prototype =
 
         /* Optimization - if we have just one inbound block, and it's
             suitable for our needs, just use it.  */
+        // 没有累积数据，当前数据长度大于等于所需
         if (this.buffers.length == 0 && mb.byteLength >= this.needed)
-        {
+        {   
+            // 当前数据大于所需
             if (mb.byteLength > this.needed)
             {
                 this.buffers.push(mb.slice(this.needed));
@@ -118,11 +122,12 @@ SpiceWireReader.prototype =
         this.saved_msg_header = undefined;
     },
 }
-
+// handle新消息
 function wire_blob_catcher(e)
 {
     DEBUG > 1 && console.log(">> WebSockets.onmessage");
     DEBUG > 1 && console.log("id " + this.wire_reader.sc.connection_id +"; type " + this.wire_reader.sc.type);
+    DEBUG > 1 && console.log("e " + JSON.stringify(e));
     SpiceWireReader.prototype.inbound.call(this.wire_reader, e.data);
 }
 

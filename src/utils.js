@@ -23,7 +23,7 @@ import { KeyNames } from './atKeynames.js';
 /*----------------------------------------------------------------------------
 **  Utility settings and functions for Spice
 **--------------------------------------------------------------------------*/
-var DEBUG = 0;
+var DEBUG = 1;
 var PLAYBACK_DEBUG = 0;
 var STREAM_DEBUG = 0;
 var DUMP_DRAWS = false;
@@ -44,15 +44,10 @@ function combine_array_buffers(a1, a2)
 {
     var in1 = new Uint8Array(a1);
     var in2 = new Uint8Array(a2);
-    var ret = new ArrayBuffer(a1.byteLength + a2.byteLength);
-    var out = new Uint8Array(ret);
-    var o = 0;
-    var i;
-    for (i = 0; i < in1.length; i++)
-        out[o++] = in1[i];
-    for (i = 0; i < in2.length; i++)
-        out[o++] = in2[i];
-
+    var ret = new Uint8Array([
+        ...in1,
+        ...in2,
+    ]);
     return ret;
 }
 

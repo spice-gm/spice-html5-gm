@@ -78,7 +78,7 @@ button:active
     position: absolute;
     font-size: .9em;
 }
-#Sidenav input
+#Sidenav input, select
 {
     padding: 3px;
     background-color: #fAfAfA;
