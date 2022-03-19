@@ -56,11 +56,11 @@ function SpiceConn(o) {
 
     // 首次建立连接时，设定默认值
     this.connection_id = o.connection_id !== undefined ? o.connection_id : 0;
-    console.log(`connection_id: ${this.connection_id}`);
+    DEBUG > 2 && console.log(`connection_id: ${this.connection_id}`);
     this.type = o.type !== undefined ? o.type : Constants.SPICE_CHANNEL_MAIN;
-    console.log(`connection_type: ${this.type}`);
+    DEBUG > 2 && console.log(`connection_type: ${this.type}`);
     this.chan_id = o.chan_id !== undefined ? o.chan_id : 0;
-    console.log(`chan_id: ${this.chan_id}`);
+    DEBUG > 2 && console.log(`chan_id: ${this.chan_id}`);
 
     // 保存连接参数
     if (o.parent !== undefined) {
@@ -209,7 +209,7 @@ SpiceConn.prototype =
         this.ws.send(mb);
     },
 
-    process_inbound: function (mb, saved_header) {
+    process_inbound: async function (mb, saved_header) {
         DEBUG > 2 && console.log(this.type + ": processing message of size " + mb.byteLength + "; state is " + this.state);
         switch (this.state) {
             case "ready":
@@ -255,6 +255,7 @@ SpiceConn.prototype =
                 break;
             case "link":
                 this.reply_link = new SpiceLinkReply(mb);
+                await this.reply_link.from_buffer(mb);
                 DEBUG > 0 && console.log(`reply_link: ${JSON.stringify(this.reply_link)}`);
                 // FIXME - Screen the caps - require minihdr at least, right?
                 if (this.reply_link.error) {
@@ -264,9 +265,27 @@ SpiceConn.prototype =
                 }
                 else {
                     console.log(`password: ${this.password}`)
-                    // console.log(`rsa_encrypt: ${rsa_encrypt(this.reply_link.pub_key, this.password + String.fromCharCode(0))}`)
-                    // this.send_ticket(rsa_encrypt(this.reply_link.pub_key, this.password + String.fromCharCode(0)));
-                    this.send_ticket(this.password + String.fromCharCode(0));
+                    console.log(`pub_key: ${this.reply_link.pub_key}`)
+                    let that = this;
+                    let encryptedPassword = "";
+                    var url = 'https://172.22.216.109:18887/sm2-plugin/encrypt-password-pubKey'
+                    await $.ajax({
+                        url: url,
+                        data: {
+                            pubKey: that.reply_link.pub_key,
+                            password: that.password + String.fromCharCode(0),
+                        },
+                        dataType: 'json',
+                        type: 'POST',
+                        success: function (data) {
+                            console.log(data);
+                            var dataArr = data.encryptedPassword.split(',');
+                            for (let i = 0; i < dataArr.length; i++) dataArr[i] = parseInt(dataArr[i]);
+                            console.log(dataArr);
+                            encryptedPassword = dataArr;
+                        }
+                    })
+                    this.send_ticket(encryptedPassword);
                     this.state = "ticket";
                     this.wire_reader.request(SpiceLinkAuthReply.prototype.buffer_size());
                 }

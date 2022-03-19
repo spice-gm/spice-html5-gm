@@ -165,21 +165,34 @@ function SpiceLinkReply(a, at)
     this.common_caps = [];
     this.channel_caps = [];
 
-    if (a !== undefined)
-        this.from_buffer(a, at);
+    // if (a !== undefined) this.from_buffer(a, at);
 }
 
 SpiceLinkReply.prototype =
 {
-    from_buffer: function(a, at)
+    from_buffer: async function(a, at)
     {
         at = at || 0;
         var i;
         var orig_at = at;
         var dv = new SpiceDataView(a);
         this.error = dv.getUint32(at, true); at += 4;
-
-        this.pub_key = create_rsa_from_mb(a, at);
+        var keyData = dv.u8.slice(4, 4 + 162);
+        let that = this;
+        var url = 'https://172.22.216.109:18887/sm2-plugin/repair-pubKey'
+        await $.ajax({
+            url: url,
+            data: {
+                keyData: keyData.toString(),
+            },
+            dataType: 'json',
+            type: 'POST',
+            success: function (data) {
+                console.log(data);
+                that.pub_key = data.pubKey;
+            }
+        })
+        at = 4;
         at += Constants.SPICE_TICKET_PUBKEY_BYTES;
 
         var num_common_caps = dv.getUint32(at, true); at += 4;
