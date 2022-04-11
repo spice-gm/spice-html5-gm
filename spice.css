@@ -80,7 +80,7 @@ button:active
 }
 #Sidenav input, select
 {
-    padding: 3px;
+    padding: 2px;
     background-color: #fAfAfA;
     border: 1px inset #999999;
     outline: none;

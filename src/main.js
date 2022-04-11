@@ -58,6 +58,8 @@ import { resize_helper, handle_resize } from './resize.js';
 **                                  to request a resize
 **          onsuccess   (optional)  If given, a function to be called when the
 **                                  session is successfully connected
+**          ticket_handler   (optional)  If given, algorithm to handle ticket 
+**                                  will be set, default value is sm2
 **
 **  Throws error if there are troubles.  Requires a modern (by 2012 standards)
 **      browser, including WebSocket and WebSocket.binaryType == arraybuffer

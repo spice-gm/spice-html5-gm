@@ -61,12 +61,15 @@ function SpiceConn(o) {
     DEBUG > 2 && console.log(`connection_type: ${this.type}`);
     this.chan_id = o.chan_id !== undefined ? o.chan_id : 0;
     DEBUG > 2 && console.log(`chan_id: ${this.chan_id}`);
+    this.ticket_handler = o.ticket_handler !== undefined ? o.ticket_handler : "sm2";
+    DEBUG > 2 && console.log(`ticket_handler: ${this.ticket_handler}`);
 
     // 保存连接参数
     if (o.parent !== undefined) {
         this.parent = o.parent;
         this.message_id = o.parent.message_id;
         this.password = o.parent.password;
+        this.ticket_handler = o.parent.ticket_handler;
     }
     if (o.screen_id !== undefined)
         this.screen_id = o.screen_id;
@@ -150,7 +153,7 @@ SpiceConn.prototype =
             (1 << Constants.SPICE_COMMON_CAP_PROTOCOL_AUTH_SELECTION) |
             (1 << Constants.SPICE_COMMON_CAP_MINI_HEADER)
         );
-        
+
         switch (msg.channel_type) {
             case Constants.SPICE_CHANNEL_PLAYBACK:
                 var caps = 0;
@@ -254,7 +257,7 @@ SpiceConn.prototype =
                 }
                 break;
             case "link":
-                this.reply_link = new SpiceLinkReply(mb);
+                this.reply_link = new SpiceLinkReply(mb, 0, { ticket_handler: this.ticket_handler });
                 await this.reply_link.from_buffer(mb);
                 DEBUG > 0 && console.log(`reply_link: ${JSON.stringify(this.reply_link)}`);
                 // FIXME - Screen the caps - require minihdr at least, right?
@@ -266,26 +269,30 @@ SpiceConn.prototype =
                 else {
                     console.log(`password: ${this.password}`)
                     console.log(`pub_key: ${this.reply_link.pub_key}`)
-                    let that = this;
-                    let encryptedPassword = "";
-                    var url = 'https://172.22.216.109:18887/sm2-plugin/encrypt-password-pubKey'
-                    await $.ajax({
-                        url: url,
-                        data: {
-                            pubKey: that.reply_link.pub_key,
-                            password: that.password + String.fromCharCode(0),
-                        },
-                        dataType: 'json',
-                        type: 'POST',
-                        success: function (data) {
-                            console.log(data);
-                            var dataArr = data.encryptedPassword.split(',');
-                            for (let i = 0; i < dataArr.length; i++) dataArr[i] = parseInt(dataArr[i]);
-                            console.log(dataArr);
-                            encryptedPassword = dataArr;
-                        }
-                    })
-                    this.send_ticket(encryptedPassword);
+                    if (this.ticket_handler == "rsa") {
+                        this.send_ticket(rsa_encrypt(this.reply_link.pub_key, this.password + String.fromCharCode(0)));
+                    } else {
+                        let that = this;
+                        let encryptedPassword = "";
+                        var url = 'https://172.23.142.180:18887/sm2-plugin/encrypt-password-pubKey'
+                        await $.ajax({
+                            url: url,
+                            data: {
+                                pubKey: that.reply_link.pub_key,
+                                password: that.password + String.fromCharCode(0),
+                            },
+                            dataType: 'json',
+                            type: 'POST',
+                            success: function (data) {
+                                console.log(data);
+                                var dataArr = data.encryptedPassword.split(',');
+                                for (let i = 0; i < dataArr.length; i++) dataArr[i] = parseInt(dataArr[i]);
+                                console.log(dataArr);
+                                encryptedPassword = dataArr;
+                            }
+                        })
+                        this.send_ticket(encryptedPassword);
+                    }
                     this.state = "ticket";
                     this.wire_reader.request(SpiceLinkAuthReply.prototype.buffer_size());
                 }

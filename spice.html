@@ -61,16 +61,17 @@
         }
 
         function connect() {
-            var host, port, password, scheme = "ws://", uri;
+            var host, port, password, scheme = "ws://", uri, tls_option, ticket_handler_option;
 
             host = document.getElementById("host").value;
             port = document.getElementById("port").value;
             password = document.getElementById("password").value;
             var select_websocket_scheme = document.getElementById("if_websocket_secure");
             scheme = select_websocket_scheme.options[select_websocket_scheme.selectedIndex].value;
-            // if (window.location.protocol == 'https:') {
-            //     scheme = "wss://";
-            // }
+            var select_websocket_tls_option = document.getElementById("if_ntls");
+            tls_option = select_websocket_tls_option.options[select_websocket_tls_option.selectedIndex].value;
+            var select_ticket_handler_option = document.getElementById("if_sm2");
+            ticket_handler_option = select_ticket_handler_option.options[select_ticket_handler_option.selectedIndex].value;
             if ((!host) || (!port)) {
                 console.log("must set host and port");
                 return;
@@ -80,14 +81,14 @@
                 sc.stop();
             }
 
-            uri = scheme + host + ":" + port;
+            uri = scheme + host + ":" + port + "/" + tls_option;
+            // uri = scheme + host + ":" + port;
 
             document.getElementById('connectButton').innerHTML = "Stop Connection";
             document.getElementById('connectButton').onclick = disconnect;
-
             try {
                 sc = new SpiceHtml5.SpiceMainConn({
-                    uri: uri, screen_id: "spice-screen", dump_id: "debug-div",
+                    uri: uri, screen_id: "spice-screen", dump_id: "debug-div", ticket_handler: ticket_handler_option,
                     message_id: "message-div", password: password, onerror: spice_error, onagent: agent_connected
                 });
             }
@@ -164,6 +165,16 @@
         <label for="port">Port:</label> <input type='text' id='port' value='5959'><br>
         <label for="password">Password:</label> <input type='password' id='password' value=''><br>
         <label for="if_websocket_secure">Protocol:</label> <select id="if_websocket_secure"> </select> <br>
+        <label for="if_ntls">Safety Option:</label>
+        <select id="if_ntls">
+            <option value="ntls">NTLS</option>
+            <option value="tls">TLS</option>
+        </select> <br>
+        <label for="if_sm2">Ticket Handler:</label>
+        <select id="if_sm2">
+            <option value="sm2">SM2</option>
+            <option value="rsa">RSA</option>
+        </select> <br>
         <button id="connectButton">Start Connection</button><br>
         <button id="sendCtrlAltDel">Send Ctrl-Alt-Delete</button>
         <button id="debugLogs">Toggle Debug Logs</button>
